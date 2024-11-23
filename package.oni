@@ -1,0 +1,79 @@
+#include <filesystem>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <map>
+
+namespace oni {
+namespace os {
+
+class OSPlugin {
+public:
+    // Path operations
+    static std::string getcwd() {
+        return std::filesystem::current_path().string();
+    }
+
+    static bool chdir(const std::string& path) {
+        return std::filesystem::current_path(path);
+    }
+
+    static bool mkdir(const std::string& path) {
+        return std::filesystem::create_directory(path);
+    }
+
+    static bool remove(const std::string& path) {
+        return std::filesystem::remove(path);
+    }
+
+    static bool rename(const std::string& src, const std::string& dst) {
+        std::filesystem::rename(src, dst);
+        return true;
+    }
+
+    // Environment variables
+    static std::string getenv(const std::string& name) {
+        const char* value = std::getenv(name.c_str());
+        return value ? value : "";
+    }
+
+    static bool setenv(const std::string& name, const std::string& value) {
+        #ifdef _WIN32
+            return _putenv_s(name.c_str(), value.c_str()) == 0;
+        #else
+            return ::setenv(name.c_str(), value.c_str(), 1) == 0;
+        #endif
+    }
+
+    // Process management
+    static int system(const std::string& command) {
+        return std::system(command.c_str());
+    }
+
+    // File operations
+    static bool exists(const std::string& path) {
+        return std::filesystem::exists(path);
+    }
+
+    static std::vector<std::string> listdir(const std::string& path = ".") {
+        std::vector<std::string> files;
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            files.push_back(entry.path().filename().string());
+        }
+        return files;
+    }
+
+    static std::map<std::string, std::string> stat(const std::string& path) {
+        std::map<std::string, std::string> info;
+        auto status = std::filesystem::status(path);
+        
+        info["size"] = std::to_string(std::filesystem::file_size(path));
+        info["type"] = std::filesystem::is_directory(status) ? "directory" : "file";
+        info["permissions"] = std::to_string(static_cast<int>(status.permissions()));
+        
+        return info;
+    }
+};
+
+} // namespace os
+} // namespace oni
